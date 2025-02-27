@@ -1,6 +1,6 @@
 // 모임 참여하기 커스텀 훅
-import { joinApi } from '@/apis/detail/detail.api';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { getDetail, joinApi } from '@/apis/detail/detail.api';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/auth/auth.hook';
 import { IMoimDetail, IMoimMasterResponse } from '@/types/detail/t-moim';
 import { QUERY_KEYS } from '@/constants/detail/detail.const';
@@ -15,72 +15,15 @@ interface IUseJoinMoimOptions {
 export const useJoinMoim = (moimId: string, options: IUseJoinMoimOptions = {}) => {
   const { me, isMeLoading } = useAuth();
   const queryClient = useQueryClient();
-  const { user, onSuccess, onError } = options;
+  const { onSuccess, onError } = options;
 
-  // useQuery 제거하고 직접 캐시 데이터 접근
-  const moimDetail = queryClient.getQueryData<IMoimMasterResponse>(
-    QUERY_KEYS.MOIM_DETAIL(moimId)
-  );
   // 모임상세 조회
-  // const { data: moimDetail, isLoading: isLoadingDetail } = useQuery({
-  //   queryKey: QUERY_KEYS.MOIM_DETAIL(moimId),
-  //   queryFn: () => getDetail(moimId),
-  //   enabled: false,  // 직접 요청하지 않음
-  // });
-
-  // 참여 취소 mutation
-  const { mutateAsync: leaveMutation, isPending: isLeaving } = useMutation({
-    mutationFn: async () => {
-      if (!me) throw new Error('로그인이 필요합니다.');
-      if (!isJoined) throw new Error('신청하지 않은 모임입니다');
-
-      const response = await joinApi.leave(moimId);
-      console.log('참여 취소 응답:', response); // 디버깅용 로그
-      return response;
-    },
-
-    onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.MOIM_DETAIL(moimId) });
-      const previousData = queryClient.getQueryData<IMoimMasterResponse>(QUERY_KEYS.MOIM_DETAIL(moimId));
-      
-      if (previousData?.moim && me) {
-        queryClient.setQueryData<IMoimMasterResponse>(QUERY_KEYS.MOIM_DETAIL(moimId), {
-          masterUser: previousData.masterUser,
-          moim: {
-            ...previousData.moim,
-            participants: previousData.moim.participants - 1,
-            participatedUsers: previousData.moim.participatedUsers.filter(
-              user => user.userUuid !== me.id
-            ),
-          }
-        });
-      }
-      return { previousData };
-    },
-
-    onSuccess: async (response) => {
-      // 새로 받아온 데이터로 캐시 업데이트
-      await queryClient.setQueryData<IMoimDetail>(QUERY_KEYS.MOIM_DETAIL(moimId), response.data);
-      
-      // 관련 쿼리 무효화
-      queryClient.invalidateQueries({ queryKey: ['getParticipatedMoim']});
-      queryClient.invalidateQueries({ queryKey: ['moims']});
-
-      onSuccess?.();
-    },
-
-    onError: (error, variables, context) => {
-      // 에러시 이전 상태로 롤백
-      if (context?.previousData) {
-        queryClient.setQueryData<IMoimMasterResponse>(
-          QUERY_KEYS.MOIM_DETAIL(moimId),
-          context.previousData
-        );
-      }
-      onError?.(error);
-    }
+  const { data: moimDetail, isLoading: isLoadingDetail } = useQuery({
+    queryKey: QUERY_KEYS.MOIM_DETAIL(moimId),
+    queryFn: () => getDetail(moimId),
+    enabled: !!moimId,
   });
-  
+
   // 현재 유저가 이 모임을 이미 참여했는지 확인
   const isJoined = me && moimDetail?.moim.participatedUsers?.some(user => user.userUuid === me.id);
   // 참여 가능한 모임인지 확인 - 유저 신청 여부, 정원, 모집중(RECRUIT)
@@ -93,7 +36,7 @@ export const useJoinMoim = (moimId: string, options: IUseJoinMoimOptions = {}) =
       if (!canJoin) throw new Error('참여할 수 없는 모임입니다');
 
       const response = await joinApi.join(moimId);
-      return response.data;
+      return response;
     },
 
     // 낙관적 업데이트
@@ -123,7 +66,7 @@ export const useJoinMoim = (moimId: string, options: IUseJoinMoimOptions = {}) =
     // 서버 응답 성공시
     onSuccess: async (response) => {
       // 모임 상세 데이터 캐시 업데이트
-      await queryClient.setQueryData<IMoimDetail>(QUERY_KEYS.MOIM_DETAIL(moimId), response);
+      await queryClient.setQueryData<IMoimDetail>(QUERY_KEYS.MOIM_DETAIL(moimId), response.data);
 
       // 내가 참여한 모임 목록 캐시 업데이트
       queryClient.invalidateQueries({ queryKey: ['getParticipatedMoim']});
@@ -162,29 +105,12 @@ export const useJoinMoim = (moimId: string, options: IUseJoinMoimOptions = {}) =
       throw error;
     }
   };
-
-  const handleLeaveMoim = async () => {
-    if (!me) throw new Error('로그인이 필요합니다');
-    if (!isJoined) throw new Error('신청하지 않은 모임입니다');
-
-    try {
-      await leaveMutation();
-      return {
-        success: true,
-        message: '모임 신청이 취소되었습니다'
-      };
-    } catch (error) {
-      throw error;
-    }
-  };
-
   return {
     isJoined: !!isJoined,
     canJoin: !!canJoin,
     isHost: !!isHost,
     handleJoinMoim,
-    handleLeaveMoim,
-    isLoading: isJoining || isMeLoading,
+    isLoading: isLoadingDetail || isJoining || isMeLoading,
     participantsCount: moimDetail?.moim.participants ?? 0,
     maxParticipants: moimDetail?.moim.maxParticipants ?? 0,
   };

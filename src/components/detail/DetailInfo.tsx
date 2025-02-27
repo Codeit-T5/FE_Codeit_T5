@@ -16,6 +16,8 @@ interface IDetailInfoProps {
   participants: number;
   minParticipants: number;
   maxParticipants: number;
+  // moimType: ECategory;
+  // status: EMoimStatus;
   moimType: string;
   status: string;
   isConfirmed: boolean;
@@ -43,7 +45,7 @@ export const DetailInfo: React.FC<IDetailInfoProps> = ({
       return '모집완료';
     } else if (isConfirmed === false) {
       return '모집중';
-    }
+    };
     return '모집중';
   }
   return (
@@ -74,10 +76,10 @@ export const DetailInfo: React.FC<IDetailInfoProps> = ({
               {"모집 일정"}
             </span>
             <Separator orientation="vertical" className="h-2 bg-gray200" />
-            <span className="text-caption-normal font-medium text-gray500" suppressHydrationWarning={true}>
+            <span className="text-caption-normal font-medium text-gray500">
               {`${formatDate(createdAt)} - ${formatDate(recruitmentDeadline)}`}
             </span>
-            <span suppressHydrationWarning={true}>
+            <span>
               <ChipSmallRound variant="gray" text={getDeadlineText(recruitmentDeadline)} />
             </span>
           </div>
@@ -86,7 +88,7 @@ export const DetailInfo: React.FC<IDetailInfoProps> = ({
               {"모임 날짜"}
             </span>
             <Separator orientation="vertical" className="h-2 bg-gray200" />
-            <span className="text-caption-normal font-medium text-gray500 flex-1" suppressHydrationWarning={true}>
+            <span className="text-caption-normal font-medium text-gray500 flex-1">
             {`${formatDate(startDate)} - ${formatDate(endDate)}`}
             </span>
           </div>

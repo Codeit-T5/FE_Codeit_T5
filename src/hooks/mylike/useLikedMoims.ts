@@ -13,14 +13,10 @@ export function useLikedMoims() {
         : undefined,
     initialPageParam: 1,
     enabled: !!me,
-    staleTime: 2 * 60 * 1000, // 2분 동안 캐시 데이터 사용
-    gcTime: 1000 * 60 * 5, // 5분
-    refetchOnWindowFocus: false, // 불필요한 리페치 방지
-    refetchOnMount: false,
-    retry: 1, // 재시도 횟수 제한
   });
 
   const moims = data?.pages.flatMap(page => page.data) ?? []; // 전체 모임 데이터를 단일 배열로 변환
+
   const pagination = data?.pages[0]?.pagination;    // 페이지네이션 정보
   return {
     moims,
@@ -31,5 +27,5 @@ export function useLikedMoims() {
     hasNextPage: hasNextPage,
     isFetchingNextPage: isFetchingNextPage,
     isEmpty: moims.length === 0 && !isLoading,
-  };
+  }
 }

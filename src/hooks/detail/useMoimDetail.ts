@@ -11,15 +11,9 @@ interface UseMoimDetailOptions {
 }
 
 export const useMoimDetail = (moimId: string, options: UseMoimDetailOptions = {}) => {
-  const { user, enabled = true } = options;
-
   return useQuery<IMoimMasterResponse>({
     queryKey: QUERY_KEYS.MOIM_DETAIL(moimId),
     queryFn: () => getDetail(moimId),
     enabled: options.enabled,
-    // SSR된 데이터 재검증 방지
-    staleTime: 1000 * 60, // 1분
-    // 캐시 유지
-    gcTime: 1000 * 60 * 5 // 5분
   });
 };

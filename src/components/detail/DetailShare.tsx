@@ -28,8 +28,6 @@ export const DetailShare: React.FC<IDetailShare> = ({ className }) => {
       <button 
         onClick={handleCopyLink}
         className={cn("justify-between items-center flex w-full min-h-19 gap-2.5 p-3 mt-3 mb-4 lg:mb-5 bg-background400 rounded-2xl ", className)}
-        aria-label="모임 공유하기: 현재 페이지 링크 복사"
-        aria-pressed={copied}
       >
         <div className="flex w-full items-center">
                     {/* 이미지 */}
@@ -37,11 +35,10 @@ export const DetailShare: React.FC<IDetailShare> = ({ className }) => {
                         <div className="w-12 h-12 ml-1 shrink-0 relative rounded-full overflow-hidden">
                           <Image
                             src="/images/img_illust-circle.png"
-                            alt=""
+                            alt={"프로필 이미지"}
                             width={48}
                             height={48}
                             className="object-cover"
-                            aria-hidden="true"
                           />
                         </div>
         

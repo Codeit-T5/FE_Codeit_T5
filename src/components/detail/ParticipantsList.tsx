@@ -25,9 +25,10 @@ export const ParticipantsList: React.FC<IPartcipantsListProps> = ({
   const availableCount = Math.max(0, maxParticipants - participants.length);
 
   // 작성자 이미지 로딩 실패시 기본 이미지를 보여줌
-  // const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-  //   e.currentTarget.src = DEFAULT_IMAGE.PROFILE;
-  // };
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    e.currentTarget.src = DEFAULT_IMAGE.PROFILE;
+  };
+
     return (
       <div className="flex justify-between items-center w-full">
             <HoverCard closeDelay={300}>
@@ -44,7 +45,7 @@ export const ParticipantsList: React.FC<IPartcipantsListProps> = ({
                   >
                     <div className="absolute w-8 h-8 rounded-full border-2 border-background200 overflow-hidden">
                       <ProfileImage
-                        src={participant.userImage} // || DEFAULT_IMAGE.PROFILE
+                        src={participant.userImage } // || DEFAULT_IMAGE.PROFILE
                         alt={participant.userNickname || "참가자 프로필"}
                         width={32}
                         height={32}
@@ -76,14 +77,14 @@ export const ParticipantsList: React.FC<IPartcipantsListProps> = ({
                       className="flex items-center gap-2 p-1 h-[36px]"
                     >
                       <ProfileImage
-                        src={participant.userImage || DEFAULT_IMAGE.PROFILE}
+                        src={participant.userImage}
                         alt={participant.userNickname || '참가자 프로필'}
                         width={24}
                         height={24}
-                        className="object-cover rounded-full border-2 border-background200 overflow-hidden w-6 h-6"
-                        // onError={handleImageError}
+                        className="rounded-full"
                       />
                       <span className="text-caption-normal text-gray400 font-medium">
+                        {/* 닉네임 */}
                         {participant.userNickname || '닉네임'}
                       </span>
                     </div>

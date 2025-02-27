@@ -41,7 +41,6 @@ export const DetailHost: React.FC<IDetailHostProps> = ({
                   alt={"주최자 프로필 이미지"}
                   fill
                   className="object-cover"
-                  loading="lazy"
                 />
             </div>
 
@@ -54,15 +53,17 @@ export const DetailHost: React.FC<IDetailHostProps> = ({
                   {position && (
                   <ChipSmallRound 
                     variant="gray"
+                    // text="PM"  
                     text={getPosition(position)}
                     />
                   )}
               </div>
-              <span className="text-label-normal text-gray500">
+              <span className="text-label-normal text-gray400">
                 {introduction}
               </span>
             </div>
-          </div>
+
+            </div>
 
             {/* 주최자 태그 */}
             {tags && tags.length > 0 && (
@@ -72,11 +73,12 @@ export const DetailHost: React.FC<IDetailHostProps> = ({
                 key={`tag-${index}`}
                 text={tag}
                 variant='tag'
-                className={cn("text-gray400")}
+                className={cn("text-gray300")}
               />
               ))}
             </div>
             )}
+
           </div>
         </div>
       </div>
