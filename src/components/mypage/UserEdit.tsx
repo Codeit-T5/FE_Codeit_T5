@@ -18,43 +18,58 @@ import { toast } from 'sonner';
 
 type Position = 'PM' | 'DESIGNER' | 'FRONTEND' | 'BACKEND';
 
+interface IUserEditForm {
+  email: string;
+  nickname: string;
+  position: Position;
+  introduction: string;
+  tags: string[];
+  image: FileList | null;
+}
+
 export default function UserEdit() {
   const { data, isLoading } = useUserQuery();
   const { mutate: editUser, isPending: isEditing } = useEditUserMutation();
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // 리액트훅폼 document 참고
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [emailInputValue, setEmailInputValue] = useState('');
-  const [nicknameInputValue, setNicknameInputValue] = useState('');
-  const [textareaValue, setTextareaValue] = useState(''); // 변수명 명확하게 수정
-  const [tags, setTags] = useState<string[]>([]);
-  const [position, setPosition] = useState<'PM' | 'DESIGNER' | 'FRONTEND' | 'BACKEND'>('PM');
 
-  // TODO : zod 라이브러리 사용해보기 타입으로 가능함
-
-  const [isEmailInputExceeded, setIsEmailInputExceeded] = useState(false);
-  const [isNicknameInputExceeded, setIsNicknameInputExceeded] = useState(false);
-  const [isTextAreaExceeded, setIsTextAreaExceeded] = useState(false);
-
-  const methods = useForm<TAuthFormValues>({
+  const {
+    register,
+    handleSubmit,
+    control,
+    setValue,
+    formState: { errors, isValid },
+    watch,
+  } = useForm<IUserEditForm>({
     defaultValues: {
-      tags: [{ value: '' }],
+      email: '',
+      nickname: '',
+      position: 'PM',
+      introduction: '',
+      tags: [],
+      image: null,
     },
   });
 
-  // methods.handleSubmit;
-
-  // || , ?? 둘 중 하나 고민해보기
+  // 데이터 초기화
   useEffect(() => {
     if (data) {
-      setEmailInputValue(data.email || '');
-      setNicknameInputValue(data.nickname || '');
-      setPosition((data.position || '') as Position);
-      setTextareaValue(data.introduction || '');
-      setTags(data.tags || []);
+      setValue('email', data.email || '');
+      setValue('nickname', data.nickname || '');
+      setValue('position', (data.position as Position) || 'PM');
+      setValue('introduction', data.introduction || '');
+      setValue('tags', data.tags || []);
     }
-  }, [data]);
+  }, [data, setValue]);
+
+  // 폼 제출 핸들러
+  const onSubmit = (formData: IUserEditForm) => {
+    const editData: IUserEdit = {
+      ...formData,
+      image: fileInputRef.current?.files?.[0] || null,
+    };
+    editUser(editData);
+  };
 
   const handleImageClick = () => {
     fileInputRef.current?.click();
@@ -67,55 +82,6 @@ export default function UserEdit() {
       setPreviewImage(imageUrl);
     }
   };
-
-  const nicknameInputHandleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const text = e.target.value;
-    if (text.length <= 8) {
-      setNicknameInputValue(text);
-      setIsNicknameInputExceeded(text.length > 8);
-    } else {
-      setIsNicknameInputExceeded(true);
-    }
-  };
-
-  // 변수명 handle~ 로 수정
-  const emailInputHandleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const text = e.target.value;
-    const emailValidation = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
-
-    setEmailInputValue(text);
-    setIsEmailInputExceeded(!emailValidation.test(text));
-  };
-
-  const handlePositionChange = (value: string | undefined) => {
-    setPosition(value as Position);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isFormValid) return;
-
-    const editData: IUserEdit = {
-      email: emailInputValue,
-      nickname: nicknameInputValue,
-      introduction: textareaValue || '',
-      tags: tags || [],
-      position: position || '',
-      image: fileInputRef.current?.files?.[0] || null,
-    };
-
-    console.log('폼 제출 데이터:', editData);
-
-    if (!editData.email || !editData.nickname || !editData.position) {
-      console.error('필수 필드가 누락');
-      return;
-    }
-
-    editUser(editData);
-  };
-
-  // 위쪽으로 이동하기
-  const isFormValid = tags.length > 0 && tags.length <= 3 && textareaValue;
 
   // 로딩이랑 수정은 다르기 때문에 분리하는게 좋을 것 같다 -> 분리가 잘 되어있으면 코드가 길어져도 괜츈
   if (isLoading || isEditing) {
@@ -215,55 +181,51 @@ export default function UserEdit() {
             )}
           </div>
 
-          <form className="flex flex-col gap-6 mt-8" onSubmit={handleSubmit}>
+          <form className="flex flex-col gap-6 mt-8" onSubmit={handleSubmit(onSubmit)}>
             <div className="flex flex-col gap-3">
               <label htmlFor="email" className="text-body-2-nomal font-medium text-gray-800">
                 이메일 주소
               </label>
               <input
+                {...register('email', {
+                  required: true,
+                  pattern: /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/,
+                })}
                 type="text"
                 id="email"
                 placeholder="dothemeet@google.com"
                 className={`rounded-xl text-gray700 bg-background400 px-4 py-[18px] placeholder:text-gray300 outline-none ${
-                  isEmailInputExceeded ? 'border-2 border-error focus:border-error' : ''
+                  errors.email ? 'border-2 border-error focus:border-error' : ''
                 }`}
-                value={emailInputValue}
-                onChange={emailInputHandleInput}
-                onInput={emailInputHandleInput}
               />
+              {errors.email && (
+                <span className="text-label-normal font-medium text-error">
+                  이메일 형식으로 입력해주세요.
+                </span>
+              )}
             </div>
-            {isEmailInputExceeded && (
-              <span
-                className={`text-label-normal font-medium ${isEmailInputExceeded ? 'text-error' : 'text-gray300'}`}
-              >
-                이메일 형식으로 입력해주세요.
-              </span>
-            )}
 
             <div className="flex flex-col gap-3">
-              <label htmlFor="nickName" className="text-body-2-nomal font-medium text-gray-800">
+              <label htmlFor="nickname" className="text-body-2-nomal font-medium text-gray-800">
                 닉네임
               </label>
-              <div className="flex flex-col gap-1.5">
-                <input
-                  type="text"
-                  id="nickName"
-                  placeholder="두두씨"
-                  className={`rounded-xl text-gray700 bg-background400 px-4 py-[18px] placeholder:text-gray300 outline-none ${
-                    isNicknameInputExceeded ? 'border-2 border-error focus:border-error' : ''
-                  }`}
-                  value={nicknameInputValue}
-                  onChange={nicknameInputHandleInput}
-                  onInput={nicknameInputHandleInput}
-                />
-                <span
-                  className={`text-label-normal font-medium ${
-                    isNicknameInputExceeded ? 'text-error' : 'text-gray300'
-                  }`}
-                >
-                  최대 8글자까지 입력 가능해요
-                </span>
-              </div>
+              <input
+                {...register('nickname', {
+                  required: true,
+                  maxLength: 8,
+                })}
+                type="text"
+                id="nickname"
+                placeholder="두두씨"
+                className={`rounded-xl text-gray700 bg-background400 px-4 py-[18px] placeholder:text-gray300 outline-none ${
+                  errors.nickname ? 'border-2 border-error focus:border-error' : ''
+                }`}
+              />
+              <span
+                className={`text-label-normal font-medium ${errors.nickname ? 'text-error' : 'text-gray300'}`}
+              >
+                최대 8글자까지 입력 가능해요
+              </span>
             </div>
 
             <div className="flex flex-col gap-3">
@@ -273,9 +235,9 @@ export default function UserEdit() {
               </label>
               <Controller
                 name="position"
-                control={methods.control}
-                render={({ field: { onChange, value } }) => (
-                  // 업뎃하기
+                control={control}
+                rules={{ required: '직군을 선택해주세요' }}
+                render={({ field }) => (
                   <AuthSelect
                     options={[
                       { value: 'PM', label: 'PM' },
@@ -283,59 +245,55 @@ export default function UserEdit() {
                       { value: 'FRONTEND', label: '프론트 개발자' },
                       { value: 'BACKEND', label: '백엔드 개발자' },
                     ]}
-                    className={cn(
-                      'h-[54px]',
-                      methods.formState.errors.position && 'focus-visible:ring-error',
-                    )}
+                    className={cn('h-[54px]', errors.position && 'focus-visible:ring-error')}
                     placeholder="직군을 선택해주세요"
-                    value={position}
-                    onChange={handlePositionChange}
+                    {...field}
                   />
                 )}
-                rules={{ required: '직군을 선택해주세요' }}
               />
             </div>
 
             <div className="flex flex-col gap-3">
-              <label htmlFor="textarea" className="text-body-2-nomal font-medium text-gray-800">
+              <label htmlFor="introduction" className="text-body-2-nomal font-medium text-gray-800">
                 소개
               </label>
-              <div className="flex flex-col gap-1.5">
-                <textarea
-                  id="textarea"
-                  value={textareaValue}
-                  onChange={(e) => {
-                    setTextareaValue(e.target.value);
-                    setIsTextAreaExceeded(e.target.value.length >= 20);
-                  }}
-                  placeholder="소개를 입력해주세요"
-                  className={`rounded-xl text-gray700 bg-background400 px-4 py-[18px] placeholder:text-gray300 resize-none outline-none ${
-                    isTextAreaExceeded ? 'border-2 border-error focus:border-error' : ''
-                  }`}
-                  maxLength={20}
-                />
-                <span
-                  className={`text-label-normal font-medium ${
-                    isTextAreaExceeded ? 'text-error' : 'text-gray300'
-                  }`}
-                >
-                  최대 20자까지 입력 가능해요
-                </span>
-              </div>
+              <textarea
+                {...register('introduction', {
+                  required: true,
+                  maxLength: 20,
+                })}
+                id="introduction"
+                placeholder="소개를 입력해주세요"
+                className={`rounded-xl text-gray700 bg-background400 px-4 py-[18px] placeholder:text-gray300 resize-none outline-none ${
+                  errors.introduction ? 'border-2 border-error focus:border-error' : ''
+                }`}
+              />
+              <span
+                className={`text-label-normal font-medium ${errors.introduction ? 'text-error' : 'text-gray300'}`}
+              >
+                최대 20자까지 입력 가능해요
+              </span>
             </div>
 
-            <TagInput tags={tags} onTagsChange={setTags} />
+            <Controller
+              name="tags"
+              control={control}
+              rules={{ required: true, validate: (tags) => tags.length <= 3 }}
+              render={({ field }) => (
+                <TagInput tags={field.value} onTagsChange={(newTags) => field.onChange(newTags)} />
+              )}
+            />
 
             <button
               type="submit"
-              disabled={isEditing}
+              disabled={isEditing || !isValid}
               className={`rounded-2xl px-[141px] py-[17px] ${
-                isFormValid ? 'bg-orange200' : 'bg-gray950'
+                isValid ? 'bg-orange200' : 'bg-gray950'
               }`}
             >
               <span
                 className={`text-body-1-normal font-semibold ${
-                  isFormValid ? 'text-white' : 'text-gray600'
+                  isValid ? 'text-white' : 'text-gray600'
                 }`}
               >
                 수정완료
